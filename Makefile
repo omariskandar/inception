@@ -7,7 +7,7 @@ SRC_DIR        := srcs
 COMPOSE_FILE   := docker-compose.yml
 ENV_FILE       := $(SRC_DIR)/.env
 
-# Compose command autodetect (v1 vs v2)
+# Use docker-compose if present, else docker compose (v2)
 COMPOSE_CMD    := $(shell command -v docker-compose >/dev/null 2>&1 && echo docker-compose || echo docker compose)
 
 # Read vars from .env (strip quotes/CR)
@@ -43,24 +43,19 @@ endef
 # Ensure srcs/secrets -> ../secrets exists, and required files are present
 define ensure_secrets
 	@ if [ ! -e "$(SRC_DIR)/secrets" ]; then \
-		if [ -d "secrets" ]; then \
-			ln -s ../secrets "$(SRC_DIR)/secrets"; \
-		else \
-			echo "[ERROR] Missing ./secrets directory with password files."; \
-			exit 1; \
-		fi \
+		if [ -d "secrets" ]; then ln -s ../secrets "$(SRC_DIR)/secrets"; \
+		else echo "[ERROR] Missing ./secrets directory with password files."; exit 1; fi; \
 	fi
 	@ for f in db_password.txt db_root_password.txt wp_admin_password.txt wp_user_password.txt ; do \
 		if [ ! -f "$(SRC_DIR)/secrets/$$f" ]; then \
-			echo "[ERROR] Missing secret file: $(SRC_DIR)/secrets/$$f"; \
-			exit 1; \
+			echo "[ERROR] Missing secret file: $(SRC_DIR)/secrets/$$f"; exit 1; \
 		fi ; \
 	done
 endef
 
-# Wrapper to run compose from srcs/ with explicit project name
+# Wrapper: run compose from srcs/, set project name via env var (portable)
 define compose
-	@ ( cd $(SRC_DIR) && $(COMPOSE_CMD) -p $(PROJECT_NAME) -f $(COMPOSE_FILE) $(1) )
+	@ ( cd $(SRC_DIR) && COMPOSE_PROJECT_NAME="$(PROJECT_NAME)" $(COMPOSE_CMD) -f $(COMPOSE_FILE) $(1) )
 endef
 
 # --------------------------------------------------------------------------- #
