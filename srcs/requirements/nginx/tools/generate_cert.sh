@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-CERT_PATH="${SSL_CERT_PATH:?/etc/nginx/ssl/self.crt}"
-KEY_PATH="${SSL_KEY_PATH:?/etc/nginx/ssl/self.key}"
-DOMAIN="${DOMAIN_NAME:?localhost}"
+CERT_PATH="/etc/nginx/ssl/oiskanda.crt"
+KEY_PATH="/etc/nginx/ssl/oiskanda.key"
+DOMAIN="${DOMAIN_NAME:-oiskanda.42.fr}"
 
 if [ ! -f "${CERT_PATH}" ] || [ ! -f "${KEY_PATH}" ]; then
   echo "[nginx] Generating self-signed certificate for ${DOMAIN}..."
