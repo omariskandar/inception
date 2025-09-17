@@ -10,11 +10,14 @@ ENV_FILE       := $(SRC_DIR)/.env
 # Compose command autodetect (v1 vs v2)
 COMPOSE_CMD    := $(shell command -v docker-compose >/dev/null 2>&1 && echo docker-compose || echo docker compose)
 
-# Read a few vars from .env (strip quotes/CR)
+# Read vars from .env (strip quotes/CR)
 PROJECT_NAME   := $(shell sed -n 's/^COMPOSE_PROJECT_NAME=\(.*\)/\1/p' $(ENV_FILE) | tr -d '\r"')
 DOMAIN_NAME    := $(shell sed -n 's/^DOMAIN_NAME=\(.*\)/\1/p'            $(ENV_FILE) | tr -d '\r"')
 HOST_DB_PATH   := $(shell sed -n 's/^HOST_DB_PATH=\(.*\)/\1/p'            $(ENV_FILE) | tr -d '\r"')
 HOST_WP_PATH   := $(shell sed -n 's/^HOST_WP_PATH=\(.*\)/\1/p'            $(ENV_FILE) | tr -d '\r"')
+
+# Fallback if COMPOSE_PROJECT_NAME missing
+PROJECT_NAME   := $(or $(PROJECT_NAME),inception)
 
 .DEFAULT_GOAL := help
 
@@ -37,23 +40,27 @@ define ensure_dirs
 	@ mkdir -p "$(HOST_DB_PATH)" "$(HOST_WP_PATH)"
 endef
 
-# We keep secrets at repo root (./secrets) but Compose (run in srcs/) expects ./secrets.
-# This symlink makes srcs/secrets -> ../secrets if it doesn't exist.
-define ensure_secrets_link
-	@ if [ ! -d "secrets" ] && [ -d "../secrets" ]; then \
-		ln -s ../secrets secrets; \
+# Ensure srcs/secrets -> ../secrets exists, and required files are present
+define ensure_secrets
+	@ if [ ! -e "$(SRC_DIR)/secrets" ]; then \
+		if [ -d "secrets" ]; then \
+			ln -s ../secrets "$(SRC_DIR)/secrets"; \
+		else \
+			echo "[ERROR] Missing ./secrets directory with password files."; \
+			exit 1; \
+		fi \
 	fi
-	@ for f in secrets/db_password.txt secrets/db_root_password.txt secrets/wp_admin_password.txt secrets/wp_user_password.txt ; do \
-		if [ ! -f "$(SRC_DIR)/$$f" ] && [ ! -f "$$f" ]; then \
-			echo "[ERROR] Missing secret file: $$f (expected at ./secrets or $(SRC_DIR)/secrets)"; \
+	@ for f in db_password.txt db_root_password.txt wp_admin_password.txt wp_user_password.txt ; do \
+		if [ ! -f "$(SRC_DIR)/secrets/$$f" ]; then \
+			echo "[ERROR] Missing secret file: $(SRC_DIR)/secrets/$$f"; \
 			exit 1; \
 		fi ; \
 	done
 endef
 
-# Wrapper to run compose from srcs/
+# Wrapper to run compose from srcs/ with explicit project name
 define compose
-	@ ( cd $(SRC_DIR) && $(COMPOSE_CMD) -f $(COMPOSE_FILE) $(1) )
+	@ ( cd $(SRC_DIR) && $(COMPOSE_CMD) -p $(PROJECT_NAME) -f $(COMPOSE_FILE) $(1) )
 endef
 
 # --------------------------------------------------------------------------- #
@@ -67,7 +74,7 @@ all: up  ## Alias for `up`
 up: ## Build and start services (detached)
 	$(call ensure_env)
 	$(call ensure_dirs)
-	@ ( cd $(SRC_DIR) && $(call ensure_secrets_link) )
+	$(call ensure_secrets)
 	$(call compose, up -d --build)
 
 .PHONY: down
@@ -78,7 +85,7 @@ down: ## Stop & remove services (keep bind-mounted data)
 .PHONY: build
 build: ## Build images only
 	$(call ensure_env)
-	@ ( cd $(SRC_DIR) && $(call ensure_secrets_link) )
+	$(call ensure_secrets)
 	$(call compose, build)
 
 .PHONY: start
