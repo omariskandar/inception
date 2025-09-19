@@ -2,10 +2,14 @@
 set -euo pipefail
 
 # ----- Read env -----
-DB_HOST="${DB_HOST:?}"
-DB_NAME="${DB_NAME:?}"
-DB_USER="${DB_USER:?}"
-DB_PASS_FILE="${DB_PASSWORD_FILE:?}"
+# ----- Read env -----
+MYSQL_HOST="${MYSQL_HOST:-mariadb}"
+MYSQL_PORT="${MYSQL_PORT:-3306}"
+DB_HOST="${DB_HOST:-$MYSQL_HOST:$MYSQL_PORT}"   # derive if not provided
+
+DB_NAME="${MYSQL_DATABASE:?}"
+DB_USER="${MYSQL_USER:?}"
+DB_PASS_FILE="${MYSQL_PASSWORD_FILE:?}"
 
 WP_TITLE="${WP_TITLE:?}"
 WP_URL="${WP_URL:?}"
@@ -20,9 +24,6 @@ WP_USER_PASS_FILE="${WP_USER_PASSWORD_FILE:?}"
 
 PHP_FPM_PORT="${PHP_FPM_PORT:-9000}"
 
-DB_PASS="$(cat "${DB_PASS_FILE}")"
-WP_ADMIN_PASS="$(cat "${WP_ADMIN_PASS_FILE}")"
-WP_USER_PASS="$(cat "${WP_USER_PASS_FILE}")"
 
 # ----- Download WordPress if not present -----
 if [ ! -f "wp-includes/version.php" ]; then
