@@ -116,6 +116,7 @@ ps: ## Show service status
 clean: ## Down + remove local images/volumes/networks (keeps bind-mounted data)
 	$(call ensure_env)
 	$(call compose, down -v --rmi local --remove-orphans || true)
+	@docker builder prune -af 2>/dev/null || true
 
 .PHONY: fclean
 fclean: clean ## clean + delete host data directories
