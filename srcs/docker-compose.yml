@@ -32,6 +32,7 @@ services:
     restart: always
     env_file:
       - .env
+	
     environment:
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
