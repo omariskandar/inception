@@ -8,6 +8,13 @@ services:
     restart: on-failure
     env_file:
       - .env
+
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD_FILE=${MYSQL_PASSWORD_FILE}
+      - MYSQL_ROOT_PASSWORD_FILE=${MYSQL_ROOT_PASSWORD_FILE}
+      - TZ=${TZ}
     secrets:
       - db_password
       - db_root_password
