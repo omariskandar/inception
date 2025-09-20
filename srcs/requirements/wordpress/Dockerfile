@@ -1,5 +1,5 @@
 # srcs/requirements/wordpress/Dockerfile
-FROM alpine:3.19
+FROM alpine:3.21
 
 # php-fpm + needed extensions + tools
 RUN apk add --no-cache \
